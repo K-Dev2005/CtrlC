@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { EMISSION_FACTORS } from '../../lib/emissionFactors';
+import { getAuthUserId } from '../../lib/auth';
 
 export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => void }) => {
   const [pnr, setPnr] = useState("");
@@ -67,6 +68,7 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userId: getAuthUserId(),
           category: 'Transport',
           subcategory: trainClass,
           description: `Train journey: ${trainResult.route}`,
@@ -93,6 +95,7 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userId: getAuthUserId(),
           category: 'Transport',
           subcategory: 'flight',
           description: `Flight: ${flightResult.route}`,

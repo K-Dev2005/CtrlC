@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAddEntry } from '../../context/AddEntryContext';
 import { EMISSION_FACTORS } from '../../lib/emissionFactors';
+import { getAuthUserId } from '../../lib/auth';
 
 const CATEGORIES = [
   'Transport — cab / auto',
@@ -89,6 +90,7 @@ export const ManualTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => v
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            userId: getAuthUserId(),
             category: activityType.split(' — ')[0],
             subcategory: activityType.split(' — ')[1] || 'general',
             description: notes || activityType,

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAddEntry } from '../../context/AddEntryContext';
+import { getAuthUserId } from '../../lib/auth';
 
 const EXAMPLE_PILLS = [
   "ordered biryani from Swiggy last night",
@@ -69,7 +70,7 @@ export const AITextTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => v
     const isTransport = (data.activity_type || data.category || '').toLowerCase() === 'transport';
     const qty = data.quantity || 0;
     const entryObj = {
-      userId: 'user_001',
+      userId: getAuthUserId(),
       category: data.activity_type || data.category || 'transport',
       subcategory: data.mode || data.subcategory || 'general',
       description: inputText,
