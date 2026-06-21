@@ -7,6 +7,7 @@ import path from 'path';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import hpp from 'hpp';
 
 dotenv.config();
 
@@ -42,6 +43,28 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(hpp()); // Protect against HTTP Parameter Pollution attacks
+
+// CSRF Strict Origin Validation Middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    const origin = req.headers.origin;
+    if (origin) {
+      const allowedOrigins = isProd 
+        ? [FRONTEND_URL] 
+        : [FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174'];
+      const isAllowed = allowedOrigins.some(url => origin.startsWith(url));
+      if (!isAllowed) {
+        return res.status(403).json({ error: 'CSRF protection triggered: Invalid Origin' });
+      }
+    } else if (isProd) {
+      // In production, strictly require Origin header for state-changing browser requests
+      // (Postman/Curl will need to mock this header)
+      return res.status(403).json({ error: 'CSRF protection triggered: Missing Origin' });
+    }
+  }
+  next();
+});
 
 // Session required by Passport (and for storing OAuth CSRF state tokens)
 app.use(session({
@@ -66,7 +89,14 @@ import badgeRoutes from './routes/badges';
 import lookupRoutes from './routes/lookup';
 import syncRoutes from './routes/sync';
 
-app.use('/auth', authRoutes);           // Google OAuth lives here
+// Strict Rate Limiter for Auth
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many authentication attempts, please try again later.' }
+});
+
+app.use('/auth', authLimiter, authRoutes);           // Google OAuth lives here
 app.use('/api/users', userRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/pledges', pledgeRoutes);
