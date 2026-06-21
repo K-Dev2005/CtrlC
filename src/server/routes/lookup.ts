@@ -24,7 +24,10 @@ router.post('/train', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&mode=transit&key=${apiKey}`;
+    // Use driving mode — Google Maps has very limited transit/rail data for
+    // Indian intercity routes. Driving distance is a reliable proxy for
+    // rail distance and works universally for all Indian city pairs.
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&mode=driving&key=${apiKey}`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Google Distance Matrix API error: ${response.status}`);
@@ -32,17 +35,19 @@ router.post('/train', async (req: Request, res: Response): Promise<void> => {
     const data = await response.json();
 
     if (data.status !== "OK") {
-      res.status(400).json({ error: 'Could not calculate distance. Please try again.' });
+      console.error('[lookup/train] Google API status:', data.status, data.error_message);
+      res.status(400).json({ error: `Could not calculate distance (${data.status}). Please check the city names and try again.` });
       return;
     }
 
     const element = data.rows?.[0]?.elements?.[0];
     if (!element || element.status === "ZERO_RESULTS") {
-      res.status(400).json({ error: 'No transit route found between these cities. Try checking the city names or use a nearby major city.' });
+      res.status(400).json({ error: 'No route found between these cities. Try using the nearest major city.' });
       return;
     }
 
     if (element.status !== "OK") {
+      console.error('[lookup/train] Element status:', element.status);
       res.status(400).json({ error: 'Could not calculate distance. Please try again.' });
       return;
     }
