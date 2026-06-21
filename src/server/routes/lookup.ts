@@ -2,34 +2,54 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 
-// POST /api/lookup/pnr
-router.post('/pnr', async (req: Request, res: Response): Promise<void> => {
+// POST /api/lookup/train
+router.post('/train', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { pnr } = req.body;
-    if (!pnr) {
-      res.status(400).json({ error: 'pnr is required' });
+    const { origin, destination } = req.body;
+    if (!origin || !destination) {
+      res.status(400).json({ error: 'Please enter both origin and destination cities.' });
       return;
     }
-    
-    // Deterministic mock based on PNR to give different results for different PNRs
-    const trainRoutes = [
-      { route: "New Delhi → Amritsar", name: "Shatabdi Express", dist: 446 },
-      { route: "Mumbai CSMT → Pune", name: "Deccan Queen", dist: 192 },
-      { route: "Bengaluru → Chennai", name: "Shatabdi Express", dist: 350 },
-      { route: "Howrah → Patna", name: "Vande Bharat", dist: 532 },
-      { route: "Ahmedabad → Mumbai", name: "Tejas Express", dist: 490 }
-    ];
-    // Simple hash of PNR string
-    const hash = pnr.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-    const selected = trainRoutes[hash % trainRoutes.length];
 
-    res.status(200).json({
-      route: selected.route,
-      trainName: selected.name,
-      distanceKm: selected.dist
-    });
+    if (origin.trim().toLowerCase() === destination.trim().toLowerCase()) {
+      res.status(400).json({ error: 'Origin and destination cannot be the same city.' });
+      return;
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: 'Google Maps API key is not configured.' });
+      return;
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&mode=transit&key=${apiKey}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Google Distance Matrix API error: ${response.status}`);
+    }
+    const data = await response.json();
+
+    if (data.status !== "OK") {
+      res.status(400).json({ error: 'Could not calculate distance. Please try again.' });
+      return;
+    }
+
+    const element = data.rows?.[0]?.elements?.[0];
+    if (!element || element.status === "ZERO_RESULTS") {
+      res.status(400).json({ error: 'No transit route found between these cities. Try checking the city names or use a nearby major city.' });
+      return;
+    }
+
+    if (element.status !== "OK") {
+      res.status(400).json({ error: 'Could not calculate distance. Please try again.' });
+      return;
+    }
+
+    const distanceKm = Math.round(element.distance.value / 1000);
+    res.status(200).json({ origin, destination, distanceKm });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to lookup PNR' });
+    console.error('Distance calculation error:', error);
+    res.status(500).json({ error: 'Distance service unavailable. Please try again.' });
   }
 });
 

@@ -1,42 +1,48 @@
 import { useState, useEffect } from 'react';
-import { EMISSION_FACTORS } from '../../lib/emissionFactors';
+import { EMISSION_FACTORS, trainClassFactors } from '../../lib/emissionFactors';
 import { getAuthUserId } from '../../lib/auth';
+import { CityInput } from '../CityInput';
 
 export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => void }) => {
-  const [pnr, setPnr] = useState("");
+  const [origin, setOrigin] = useState("");
+  const [destination, setDestination] = useState("");
   const [flightNum, setFlightNum] = useState("");
   const [trainResult, setTrainResult] = useState<any>(null);
   const [flightResult, setFlightResult] = useState<any>(null);
-  const [trainClass, setTrainClass] = useState('train - sleeper (sl)');
+  const [trainClass, setTrainClass] = useState('SL');
   const [trainCo2, setTrainCo2] = useState(0);
+  const [isLoadingTrain, setIsLoadingTrain] = useState(false);
+  const [trainError, setTrainError] = useState("");
 
   // Re-calculate train CO2 when class changes
   useEffect(() => {
     if (trainResult && trainResult.distanceKm) {
-      const factor = EMISSION_FACTORS[trainClass as keyof typeof EMISSION_FACTORS] || 0.016;
+      const factor = trainClassFactors[trainClass] || 0.016;
       setTrainCo2(parseFloat((trainResult.distanceKm * factor).toFixed(2)));
     }
   }, [trainClass, trainResult]);
 
   const handleTrainLookup = async () => {
-    if (pnr.length !== 10) return;
+    if (!origin || !destination) return;
+    setIsLoadingTrain(true);
+    setTrainError("");
+    setTrainResult(null);
     try {
-      // Assuming mock API returns route and distanceKm
-      const response = await fetch('/api/lookup/pnr', {
+      const response = await fetch('/api/lookup/train', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pnr }),
+        body: JSON.stringify({ origin, destination }),
       });
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         setTrainResult(data);
       } else {
-        // Fallback mock if endpoint missing
-        setTrainResult({ route: "New Delhi → Amritsar", trainName: "Shatabdi Exp", distanceKm: 450 });
+        setTrainError(data.error || "Could not calculate distance.");
       }
     } catch {
-      // Fallback
-      setTrainResult({ route: "New Delhi → Amritsar", trainName: "Shatabdi Exp", distanceKm: 450 });
+      setTrainError("Distance service unavailable. Please try again.");
+    } finally {
+      setIsLoadingTrain(false);
     }
   };
 
@@ -70,8 +76,8 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
         body: JSON.stringify({
           userId: getAuthUserId(),
           category: 'Transport',
-          subcategory: trainClass,
-          description: `Train journey: ${trainResult.route}`,
+          subcategory: `train - ${trainClass.toLowerCase()}`,
+          description: `Train journey: ${trainResult.origin.replace(', India', '')} → ${trainResult.destination.replace(', India', '')}`,
           distanceKm: trainResult.distanceKm,
           co2Kg: trainCo2,
           source: 'manual',
@@ -81,7 +87,8 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
       });
       onSaveSuccess(`Entry saved — ${trainCo2} kg logged`);
       setTrainResult(null);
-      setPnr("");
+      setOrigin("");
+      setDestination("");
     } catch (e) {
       console.error(e);
     }
@@ -114,63 +121,92 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
     }
   };
 
+  const getClassName = (cls: string) => {
+    const names: Record<string, string> = {
+      "1A": "AC First Class",
+      "2A": "AC 2-tier",
+      "3A": "AC 3-tier",
+      "3E": "AC 3-tier Economy",
+      "EC": "Executive Chair Car",
+      "CC": "Chair Car AC",
+      "SL": "Sleeper",
+      "2S": "Second Sitting",
+      "GENERAL": "General / Unreserved"
+    };
+    return names[cls] || cls;
+  };
+
+  const renderClassButton = (cls: string) => (
+    <button
+      key={cls}
+      onClick={() => setTrainClass(cls)}
+      title={getClassName(cls)}
+      disabled={isLoadingTrain}
+      className={`py-xs rounded text-label-sm font-medium transition-colors ${
+        trainClass === cls 
+          ? 'bg-surface text-on-surface border-2 border-primary shadow-sm' 
+          : 'text-on-surface-variant hover:bg-surface-container border-2 border-transparent disabled:opacity-50'
+      }`}
+    >
+      {cls}
+    </button>
+  );
+
   return (
     <div className="flex flex-col gap-lg pb-xxl">
       {/* Train Section */}
       <div className="flex flex-col gap-sm">
-        <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">Train PNR number</label>
-        <div className="flex gap-sm">
-          <input
-            type="text"
-            value={pnr}
-            onChange={e => setPnr(e.target.value)}
-            placeholder="10 digits"
-            className="flex-1 bg-surface border border-outline-variant rounded p-sm text-body-md focus:border-primary font-mono"
-            maxLength={10}
-          />
-          <button
-            onClick={handleTrainLookup}
-            disabled={pnr.length !== 10}
-            className="bg-primary text-on-primary px-md rounded font-medium text-body-md hover:bg-primary-container disabled:opacity-50"
-          >
-            Look up
-          </button>
+        <CityInput
+          label="Origin City"
+          placeholder="e.g. Jalandhar"
+          onSelect={setOrigin}
+          disabled={isLoadingTrain}
+        />
+        <CityInput
+          label="Destination City"
+          placeholder="e.g. New Delhi"
+          onSelect={setDestination}
+          disabled={isLoadingTrain}
+        />
+
+        <div className="mt-sm">
+          <label className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs block">Travel Class</label>
+          <div className="grid grid-cols-5 gap-xs">
+            {['1A', '2A', '3A', '3E', 'EC'].map(renderClassButton)}
+          </div>
+          <div className="grid grid-cols-4 gap-xs mt-xs">
+            {['CC', 'SL', '2S', 'GENERAL'].map(renderClassButton)}
+          </div>
         </div>
+
+        {trainError && <div className="text-error text-body-sm mt-xs">{trainError}</div>}
+
+        <button
+          onClick={handleTrainLookup}
+          disabled={!origin || !destination || isLoadingTrain}
+          className="bg-primary text-on-primary px-md py-sm rounded font-medium text-body-md hover:bg-primary-container disabled:opacity-50 mt-sm flex justify-center"
+        >
+          {isLoadingTrain ? (
+            <span className="flex items-center gap-xs">
+              <span className="animate-spin h-4 w-4 border-2 border-on-primary border-t-transparent rounded-full"></span>
+              Calculating...
+            </span>
+          ) : "Calculate distance"}
+        </button>
 
         {trainResult && (
           <div className="bg-surface p-md rounded-lg border border-outline-variant mt-sm flex flex-col gap-md">
             <div>
-              <div className="text-headline-md text-on-surface">{trainResult.route}</div>
-              <div className="text-body-md text-on-surface-variant mt-xs">
-                {trainResult.trainName} • {trainResult.distanceKm} km
+              <div className="text-headline-md text-on-surface">
+                {trainResult.origin.split(',')[0]} → {trainResult.destination.split(',')[0]}
               </div>
-            </div>
-            
-            <div>
-              <div className="flex gap-xs bg-surface-container-low p-xs rounded">
-                {[
-                  { id: 'train - sleeper (sl)', label: 'SL' },
-                  { id: 'train - 3a', label: '3A' },
-                  { id: 'train - 2a', label: '2A' },
-                  { id: 'train - chair car (cc)', label: 'CC' }
-                ].map(cls => (
-                  <button
-                    key={cls.id}
-                    onClick={() => setTrainClass(cls.id)}
-                    className={`flex-1 py-xs rounded text-label-sm font-medium transition-colors ${
-                      trainClass === cls.id 
-                        ? 'bg-surface text-on-surface border-2 border-primary shadow-sm' 
-                        : 'text-on-surface-variant hover:bg-surface-container border-2 border-transparent'
-                    }`}
-                  >
-                    {cls.label}
-                  </button>
-                ))}
+              <div className="text-body-md text-on-surface-variant mt-xs">
+                {trainResult.distanceKm} km by rail (approximate)
               </div>
             </div>
 
             <div className="flex justify-between items-center pt-xs">
-              <div className="text-headline-md text-secondary">{trainCo2} kg</div>
+              <div className="text-headline-md text-secondary">{trainCo2} kg CO₂e</div>
               <button onClick={saveTrain} className="bg-primary text-on-primary px-md py-sm rounded text-body-md font-medium">
                 Save journey
               </button>
