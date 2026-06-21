@@ -1,5 +1,7 @@
 # Ctrl+C — Take Control of Your Carbon
 
+try at https://project-ctrlc.vercel.app
+  
 A carbon footprint tracker for urban Indians aged 18–30 that makes
 environmental impact visible, trackable, and actually reducible.
 
