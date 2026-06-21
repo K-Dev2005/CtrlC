@@ -22,7 +22,7 @@ services:
       - key: APP_URL
         sync: false   # set to your Render service URL e.g. https://harit-backend.onrender.com
       - key: FRONTEND_URL
-        sync: false   # set to your Vercel URL e.g. https://harit.vercel.app
+        sync: false   # set to your Vercel URL e.g. https://project-ctrlc.vercel.app
       - key: GOOGLE_MAPS_API_KEY
         sync: false
 
