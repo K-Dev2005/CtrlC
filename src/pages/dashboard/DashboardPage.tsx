@@ -86,8 +86,45 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     fetchDashboardData();
 
-    const handleEntrySaved = () => {
-      fetchDashboardData();
+    const handleEntrySaved = (event: Event) => {
+      const newEntry = (event as CustomEvent).detail;
+
+      if (newEntry && newEntry.co2Kg != null) {
+        // Optimistic update — apply locally immediately, no refetch needed
+        const co2 = Number(newEntry.co2Kg) || 0;
+        const category = (newEntry.category || 'other').toLowerCase();
+        const syntheticEntry = {
+          id: `optimistic_${Date.now()}`,
+          userId: getActiveUserId(),
+          category,
+          subcategory: newEntry.subcategory || 'general',
+          description: newEntry.description || '',
+          distanceKm: newEntry.distanceKm ?? null,
+          quantity: newEntry.quantity ?? null,
+          unit: newEntry.unit ?? null,
+          co2Kg: co2,
+          source: newEntry.source || 'manual',
+          loggedAt: newEntry.loggedAt || new Date().toISOString(),
+          createdAt: newEntry.createdAt || new Date().toISOString(),
+        };
+
+        setData(prev => {
+          if (!prev) return prev;
+          const newBreakdown = { ...prev.categoryBreakdown };
+          newBreakdown[category] = (newBreakdown[category] || 0) + co2;
+          return {
+            ...prev,
+            weekCurrentKg: parseFloat((prev.weekCurrentKg + co2).toFixed(2)),
+            monthTotalKg: parseFloat((prev.monthTotalKg + co2).toFixed(2)),
+            recentEntries: [syntheticEntry, ...prev.recentEntries].slice(0, 5),
+            categoryBreakdown: newBreakdown,
+          };
+        });
+      }
+
+      // Background reconciliation after 4s to sync with authoritative server state
+      const reconcileTimer = setTimeout(() => fetchDashboardData(), 4000);
+      return () => clearTimeout(reconcileTimer);
     };
 
     window.addEventListener('entry-saved', handleEntrySaved);

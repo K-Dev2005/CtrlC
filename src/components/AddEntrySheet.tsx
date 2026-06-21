@@ -70,9 +70,9 @@ export const AddEntrySheet = () => {
     };
   }, [isOpen]);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, entry?: any) => {
     setToastMsg(msg);
-    window.dispatchEvent(new Event('entry-saved'));
+    window.dispatchEvent(new CustomEvent('entry-saved', { detail: entry ?? null }));
     setTimeout(() => {
       setToastMsg(null);
       closeSheet();

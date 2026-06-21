@@ -1,42 +1,8 @@
 import { Router, Request, Response } from 'express';
-import fs from 'fs';
-import path from 'path';
+import { readDb, writeDb } from '../db';
 import { startOfWeek, startOfMonth } from 'date-fns';
 
 const router = Router();
-
-// ---------------------------------------------------------------------------
-// JSON file store
-// ---------------------------------------------------------------------------
-const DB_FILE = path.resolve(process.cwd(), 'db.json');
-
-interface DbStore {
-  entries: any[];
-  users: any[];
-  [key: string]: any;
-}
-
-function readDb(): DbStore {
-  try {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return {
-      ...parsed,
-      entries: Array.isArray(parsed.entries) ? parsed.entries : [],
-      users: Array.isArray(parsed.users) ? parsed.users : [],
-    };
-  } catch {
-    return { entries: [], users: [] };
-  }
-}
-
-function writeDb(data: DbStore): void {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('[db.json] Write failed:', e);
-  }
-}
 
 // ---------------------------------------------------------------------------
 // POST /api/users/onboarding
@@ -99,6 +65,7 @@ router.get('/dashboard', (req: Request, res: Response): void => {
       categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + (Number(e.co2Kg) || 0);
     });
 
+    res.setHeader('Cache-Control', 'private, max-age=30');
     res.status(200).json({
       weeklyBudgetKg: user.weeklyBudgetKg || 18,
       weekCurrentKg: parseFloat(weekCurrentKg.toFixed(2)),

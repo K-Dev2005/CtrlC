@@ -17,7 +17,7 @@ const CATEGORIES = [
   'Other'
 ];
 
-export const ManualTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => void }) => {
+export const ManualTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string, entry?: any) => void }) => {
   const { prefillData } = useAddEntry();
   
   const [activityType, setActivityType] = useState(CATEGORIES[0]);
@@ -86,30 +86,30 @@ export const ManualTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => v
     } else {
       // Save phase
       try {
+        const entryPayload = {
+          category: activityType.split(' — ')[0].toLowerCase(),
+          subcategory: activityType.split(' — ')[1] || 'general',
+          description: notes || activityType,
+          distanceKm: unit === 'km' ? parseFloat(quantity) : undefined,
+          quantity: unit !== 'km' ? parseFloat(quantity) : undefined,
+          unit: unit !== 'km' ? unit : undefined,
+          co2Kg: calculatedCo2,
+          source: 'manual',
+          loggedAt: new Date(date).toISOString(),
+          createdAt: new Date().toISOString()
+        };
         await fetch('/api/entries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: getAuthUserId(),
-            category: activityType.split(' — ')[0],
-            subcategory: activityType.split(' — ')[1] || 'general',
-            description: notes || activityType,
-            distanceKm: unit === 'km' ? parseFloat(quantity) : undefined,
-            quantity: unit !== 'km' ? parseFloat(quantity) : undefined,
-            unit: unit !== 'km' ? unit : undefined,
-            co2Kg: calculatedCo2,
-            source: 'manual',
-            loggedAt: new Date(date).toISOString(),
-            createdAt: new Date().toISOString()
-          })
+          body: JSON.stringify({ userId: getAuthUserId(), ...entryPayload })
         });
-        onSaveSuccess(`Entry saved — ${calculatedCo2} kg logged`);
+        onSaveSuccess(`Entry saved — ${calculatedCo2} kg logged`, entryPayload);
         // Reset form
         setCalculatedCo2(null);
-        setQuantity("");
-        setNotes("");
+        setQuantity('');
+        setNotes('');
       } catch (e) {
-        console.error("Manual save error", e);
+        console.error('Manual save error', e);
       }
     }
   };

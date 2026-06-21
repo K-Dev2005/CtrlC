@@ -12,6 +12,22 @@ if (hasValidKey) {
   model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 }
 
+// ---------------------------------------------------------------------------
+// Pre-build the emission factors string ONCE at module load.
+// Including it inline in the prompt via JSON.stringify() burns tokens on
+// every single call. This version is compact and reused across all calls.
+// ---------------------------------------------------------------------------
+const EMISSION_FACTORS_STR = Object.entries(EMISSION_FACTORS)
+  .map(([k, v]) => `  "${k}": ${v}`)
+  .join('\n');
+
+// ---------------------------------------------------------------------------
+// In-memory parse cache — keyed on normalised input text.
+// Caps at 100 entries to prevent unbounded growth.
+// ---------------------------------------------------------------------------
+const _parseCache = new Map<string, any>();
+const PARSE_CACHE_MAX = 100;
+
 /** Strip markdown code-fence wrappers that Gemini sometimes adds */
 function stripMarkdown(text: string): string {
   return text
@@ -121,6 +137,13 @@ export const parseEntryText = async (text: string) => {
     return mockParse(text);
   }
 
+  // Check cache first — identical inputs don't need a new API call
+  const cacheKey = text.trim().toLowerCase();
+  if (_parseCache.has(cacheKey)) {
+    console.log('[Gemini] Cache hit — skipping API call');
+    return _parseCache.get(cacheKey);
+  }
+
   const prompt = `
 You are a carbon emissions parser for an Indian audience.
 The user has described an activity in plain text. Extract:
@@ -129,7 +152,7 @@ The user has described an activity in plain text. Extract:
 - quantity: numeric value
 - unit: km / meals / kWh / hours / items
 - co2_kg: calculated emission using these factors:
-  ${JSON.stringify(EMISSION_FACTORS)}
+${EMISSION_FACTORS_STR}
 - needs_clarification: true if the input is too vague
 - clarification_question: a short question if clarification needed
 
@@ -144,6 +167,14 @@ User Input: "${text}"
     const cleaned = stripMarkdown(rawText);
     const parsed = JSON.parse(cleaned);
     console.log(`[Gemini API] Parsed entry. Tokens: ${result.response.usageMetadata?.totalTokenCount}`);
+
+    // Store in cache; evict oldest entry if at capacity
+    if (_parseCache.size >= PARSE_CACHE_MAX) {
+      const firstKey = _parseCache.keys().next().value;
+      _parseCache.delete(firstKey);
+    }
+    _parseCache.set(cacheKey, parsed);
+
     return parsed;
   } catch (error) {
     console.error('[Gemini] Parse failed, falling back to mock:', error);

@@ -29,6 +29,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       earnedAt: earnedMap.get(slug) || null
     }));
 
+    res.setHeader('Cache-Control', 'private, max-age=60');
     res.status(200).json(badges);
   } catch (error) {
     console.error('Fetch Badges Error:', error);

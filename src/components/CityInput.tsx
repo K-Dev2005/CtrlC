@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Fuse from 'fuse.js';
-import citiesData from '../lib/indianCities.json';
 
 interface City {
   id: string;
@@ -15,23 +14,46 @@ interface CityInputProps {
   disabled?: boolean;
 }
 
-const fuse = new Fuse<City>(citiesData as City[], {
-  keys: [
-    { name: "name", weight: 0.7 },
-    { name: "state", weight: 0.3 }
-  ],
-  threshold: 0.35,
-  minMatchCharLength: 2
-});
+// Module-level cache — built once on first mount, reused on all subsequent mounts.
+// This keeps the 113KB JSON and Fuse index out of the initial JS bundle.
+let _fuseInstance: Fuse<City> | null = null;
+let _fuseLoading: Promise<void> | null = null;
+
+async function getFuse(): Promise<Fuse<City>> {
+  if (_fuseInstance) return _fuseInstance;
+
+  if (!_fuseLoading) {
+    _fuseLoading = import('../lib/indianCities.json').then((mod) => {
+      const data = (mod.default ?? mod) as City[];
+      _fuseInstance = new Fuse<City>(data, {
+        keys: [
+          { name: 'name', weight: 0.7 },
+          { name: 'state', weight: 0.3 },
+        ],
+        threshold: 0.35,
+        minMatchCharLength: 2,
+      });
+    });
+  }
+
+  await _fuseLoading;
+  return _fuseInstance!;
+}
 
 export const CityInput: React.FC<CityInputProps> = ({ label, placeholder, onSelect, disabled }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<City[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [fuseReady, setFuseReady] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   // Ref to track when a city has just been selected — suppresses the search effect
   const justSelectedRef = useRef(false);
+
+  // Lazy-load cities JSON + build Fuse index on first mount
+  useEffect(() => {
+    getFuse().then(() => setFuseReady(true));
+  }, []);
 
   useEffect(() => {
     // Skip the search if this query change was caused by a selection
@@ -40,16 +62,19 @@ export const CityInput: React.FC<CityInputProps> = ({ label, placeholder, onSele
       return;
     }
 
-    if (query.length >= 2) {
+    if (!fuseReady || query.length < 2) {
+      setSuggestions([]);
+      setIsOpen(false);
+      return;
+    }
+
+    getFuse().then((fuse) => {
       const results = fuse.search(query).map(result => result.item).slice(0, 6);
       setSuggestions(results);
       setIsOpen(true);
       setHighlightedIndex(-1);
-    } else {
-      setSuggestions([]);
-      setIsOpen(false);
-    }
-  }, [query]);
+    });
+  }, [query, fuseReady]);
 
   // Handle outside click
   useEffect(() => {

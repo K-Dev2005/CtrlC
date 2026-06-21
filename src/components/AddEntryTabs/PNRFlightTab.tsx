@@ -4,7 +4,7 @@ import { EMISSION_FACTORS, trainClassFactors } from '../../lib/emissionFactors';
 import { getAuthUserId } from '../../lib/auth';
 import { CityInput } from '../CityInput';
 
-export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => void }) => {
+export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string, entry?: any) => void }) => {
   const [activeMode, setActiveMode] = useState<'train' | 'flight'>('train');
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -71,23 +71,23 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
 
   const saveTrain = async () => {
     if (!trainResult) return;
+    const entryPayload = {
+      category: 'transport',
+      subcategory: `train - ${trainClass.toLowerCase()}`,
+      description: `Train journey: ${trainResult.origin.replace(', India', '')} → ${trainResult.destination.replace(', India', '')}`,
+      distanceKm: trainResult.distanceKm,
+      co2Kg: trainCo2,
+      source: 'manual',
+      loggedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
     try {
       await fetch('/api/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: getAuthUserId(),
-          category: 'Transport',
-          subcategory: `train - ${trainClass.toLowerCase()}`,
-          description: `Train journey: ${trainResult.origin.replace(', India', '')} → ${trainResult.destination.replace(', India', '')}`,
-          distanceKm: trainResult.distanceKm,
-          co2Kg: trainCo2,
-          source: 'manual',
-          loggedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString()
-        })
+        body: JSON.stringify({ userId: getAuthUserId(), ...entryPayload })
       });
-      onSaveSuccess(`Entry saved — ${trainCo2} kg logged`);
+      onSaveSuccess(`Entry saved — ${trainCo2} kg logged`, entryPayload);
       setTrainResult(null);
       setOrigin("");
       setDestination("");
@@ -99,23 +99,23 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
   const saveFlight = async () => {
     if (!flightResult) return;
     const flightCo2 = parseFloat((flightResult.distanceKm * EMISSION_FACTORS['flight (economy)']).toFixed(2));
+    const entryPayload = {
+      category: 'transport',
+      subcategory: 'flight',
+      description: `Flight: ${flightResult.route}`,
+      distanceKm: flightResult.distanceKm,
+      co2Kg: flightCo2,
+      source: 'manual',
+      loggedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
     try {
       await fetch('/api/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: getAuthUserId(),
-          category: 'Transport',
-          subcategory: 'flight',
-          description: `Flight: ${flightResult.route}`,
-          distanceKm: flightResult.distanceKm,
-          co2Kg: flightCo2,
-          source: 'manual',
-          loggedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString()
-        })
+        body: JSON.stringify({ userId: getAuthUserId(), ...entryPayload })
       });
-      onSaveSuccess(`Entry saved — ${flightCo2} kg logged`);
+      onSaveSuccess(`Entry saved — ${flightCo2} kg logged`, entryPayload);
       setFlightResult(null);
       setFlightNum("");
     } catch (e) {

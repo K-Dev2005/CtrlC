@@ -30,6 +30,7 @@ router.get('/weekly', async (req: Request, res: Response): Promise<void> => {
 
     const cards = await generateActionCards(categoryBreakdown);
 
+    res.setHeader('Cache-Control', 'private, max-age=300');
     res.status(200).json({ cards });
   } catch (error) {
     console.error('Actions Weekly Error:', error);

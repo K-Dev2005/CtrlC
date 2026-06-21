@@ -4,6 +4,7 @@ import { Strategy as GoogleStrategy, Profile } from 'passport-google-oauth20';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 // Load .env before reading any process.env values
@@ -166,10 +167,16 @@ router.get('/google', (req: Request, res: Response) => {
     );
   }
 
-  // Real Google OAuth flow
+  // Generate a cryptographically random state token for CSRF protection.
+  // Store it in the session so we can verify it when Google calls back.
+  const stateToken = crypto.randomBytes(32).toString('hex');
+  (req.session as any).oauthState = stateToken;
+
+  // Real Google OAuth flow — pass state token to Google
   return passport.authenticate('google', {
     scope: ['profile', 'email'],
-    session: false,
+    session: true,
+    state: stateToken,
   })(req, res);
 });
 
@@ -183,7 +190,22 @@ router.get(
       res.redirect(`${getFrontendUrl()}/signin?error=no_credentials`);
       return;
     }
-    passport.authenticate('google', { session: false, failureRedirect: `${getFrontendUrl()}/signin?error=oauth_failed` })(
+
+    // CSRF protection: verify the state token returned by Google matches
+    // the one we stored in the session before initiating the OAuth flow.
+    const returnedState = req.query.state as string | undefined;
+    const expectedState = (req.session as any).oauthState as string | undefined;
+
+    if (!returnedState || !expectedState || returnedState !== expectedState) {
+      console.warn('[auth] OAuth state mismatch — possible CSRF attack, rejecting callback');
+      res.redirect(`${getFrontendUrl()}/signin?error=state_mismatch`);
+      return;
+    }
+
+    // Clear the used state token from the session immediately
+    delete (req.session as any).oauthState;
+
+    passport.authenticate('google', { session: true, failureRedirect: `${getFrontendUrl()}/signin?error=oauth_failed` })(
       req,
       res,
       next

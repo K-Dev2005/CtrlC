@@ -42,7 +42,7 @@ function clientSideMock(text: string) {
   };
 }
 
-export const AITextTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => void }) => {
+export const AITextTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string, entry?: any) => void }) => {
   const { setActiveTab, setPrefillData } = useAddEntry();
   const [text, setText] = useState("");
   const [lastParsedText, setLastParsedText] = useState("");
@@ -147,9 +147,9 @@ export const AITextTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => v
         body: JSON.stringify(parseResult.entry),
       });
       // Show success regardless — entry saved to DB or db.json fallback
-      onSaveSuccess(`Entry saved — ${parseResult.entry.co2Kg} kg CO₂e logged`);
+      onSaveSuccess(`Entry saved — ${parseResult.entry.co2Kg} kg CO₂e logged`, parseResult.entry);
     } catch (error) {
-      onSaveSuccess(`Entry saved — ${parseResult.entry.co2Kg} kg CO₂e logged`);
+      onSaveSuccess(`Entry saved — ${parseResult.entry.co2Kg} kg CO₂e logged`, parseResult.entry);
     }
   };
 

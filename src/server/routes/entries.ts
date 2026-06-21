@@ -1,43 +1,9 @@
 import { Router, Request, Response } from 'express';
-import fs from 'fs';
-import path from 'path';
+import { readDb, writeDb } from '../db';
 import { parseEntryText } from '../services/geminiService';
 import { startOfWeek, startOfMonth } from 'date-fns';
 
 const router = Router();
-
-// ---------------------------------------------------------------------------
-// Simple JSON file store — no Prisma required
-// ---------------------------------------------------------------------------
-const DB_FILE = path.resolve(process.cwd(), 'db.json');
-
-interface DbStore {
-  entries: any[];
-  users: any[];
-  [key: string]: any;
-}
-
-function readDb(): DbStore {
-  try {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return {
-      ...parsed,
-      entries: Array.isArray(parsed.entries) ? parsed.entries : [],
-      users: Array.isArray(parsed.users) ? parsed.users : [],
-    };
-  } catch {
-    return { entries: [], users: [] };
-  }
-}
-
-function writeDb(data: DbStore): void {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('[db.json] Write failed:', e);
-  }
-}
 
 function generateId(): string {
   return `e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -139,6 +105,7 @@ router.get('/', (req: Request, res: Response): void => {
     entries.sort((a: any, b: any) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
     const paginated = entries.slice((page - 1) * limit, page * limit);
 
+    res.setHeader('Cache-Control', 'private, max-age=30');
     res.status(200).json({ entries: paginated, page });
   } catch (error) {
     console.error('Fetch Entries Error:', error);

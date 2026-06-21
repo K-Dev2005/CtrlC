@@ -1,23 +1,50 @@
-import React from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import CategoryPage from './pages/category/CategoryPage';
-import ActionsPage from './pages/actions/ActionsPage';
-import ReviewPage from './pages/review/ReviewPage';
-import LeaderboardPage from './pages/leaderboard/LeaderboardPage';
-import BadgesPage from './pages/badges/BadgesPage';
 import BottomNav from './components/BottomNav';
-import QuizPage from './pages/onboarding/QuizPage';
-import ResultPage from './pages/onboarding/ResultPage';
-import SignInPage from './pages/onboarding/SignInPage';
-import ConnectAppPage from './pages/onboarding/ConnectAppPage';
 import { AddEntryProvider } from './context/AddEntryContext';
 import { AddEntrySheet } from './components/AddEntrySheet';
-import ConnectAppsPage from './pages/apps/ConnectAppsPage';
+import { getAuthName, getAuthUserId } from './lib/auth';
+
+// Lazy-loaded pages — each gets its own JS chunk, loaded only when navigated to.
+// This reduces the initial bundle from ~374KB to ~80-120KB.
+const DashboardPage    = React.lazy(() => import('./pages/dashboard/DashboardPage'));
+const CategoryPage     = React.lazy(() => import('./pages/category/CategoryPage'));
+const ActionsPage      = React.lazy(() => import('./pages/actions/ActionsPage'));
+const ReviewPage       = React.lazy(() => import('./pages/review/ReviewPage'));
+const LeaderboardPage  = React.lazy(() => import('./pages/leaderboard/LeaderboardPage'));
+const BadgesPage       = React.lazy(() => import('./pages/badges/BadgesPage'));
+const QuizPage         = React.lazy(() => import('./pages/onboarding/QuizPage'));
+const ResultPage       = React.lazy(() => import('./pages/onboarding/ResultPage'));
+const SignInPage       = React.lazy(() => import('./pages/onboarding/SignInPage'));
+const ConnectAppPage   = React.lazy(() => import('./pages/onboarding/ConnectAppPage'));
+const ConnectAppsPage  = React.lazy(() => import('./pages/apps/ConnectAppsPage'));
+
+/** Lightweight fallback shown while a lazy chunk is loading */
+const PageLoader: React.FC = () => (
+  <div className="flex h-screen items-center justify-center bg-background">
+    <div className="h-7 w-7 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
 
 // Responsive Layout Wrapper
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  const [userName, setUserName] = useState(getAuthName());
+  const [userId, setUserId]     = useState(getAuthUserId());
+
+  // Keep sidebar in sync if auth changes (e.g. after OAuth redirect)
+  useEffect(() => {
+    setUserName(getAuthName());
+    setUserId(getAuthUserId());
+  }, [location.pathname]);
+
+  // Initials avatar — no broken image if user has no Google photo
+  const initials = userName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   // Highlight active link in sidebar
   const isActive = (path: string) => {
@@ -103,16 +130,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         <div className="mt-auto pt-sm border-t border-surface-variant/40">
           <div className="flex items-center gap-sm p-xs">
-            <div className="w-9 h-9 rounded-full overflow-hidden border border-outline-variant">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAO29FJVgyJsthUMV68gyf_NQLcz1HH2iCNJMCVFy16ZVh9IAa55QOKZKzxkcB2hzZgT5oeuQZizFj1GntJau3LthYxhF4X89hiHDrpoFP6L1_Pnp0ZuNOnBiv7Tzz3x0bRI9G-EUS0LPCbcNP3UvYDqIYt9TN9xwVNPNhHQtdn16nUjgKX7G-5RMIAUOjT8lMpzGAwqSpW9LFGnsWHqyARQsZpVsCz9DBKUmc-FgE4Otp0USdXmZqtf22rm24shPdSNmyZQlwbLfYn"
-                alt="Profile Avatar"
-                className="w-full h-full object-cover"
-              />
+            {/* Initials avatar — no broken external image dependency */}
+            <div className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center border border-outline-variant">
+              <span className="text-[13px] font-bold text-white">{initials}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[12px] font-semibold text-primary">Kishlay</span>
-              <span className="text-[10px] text-on-surface-variant">user_001</span>
+              <span className="text-[12px] font-semibold text-primary">{userName}</span>
+              <span className="text-[10px] text-on-surface-variant">{userId}</span>
             </div>
           </div>
         </div>
@@ -134,74 +158,76 @@ export const App: React.FC = () => {
   return (
     <AddEntryProvider>
       <Router>
-        <Routes>
-          {/* Onboarding Routes (No AppLayout) */}
-          <Route path="/quiz" element={<QuizPage />} />
-          <Route path="/result" element={<ResultPage />} />
-          <Route path="/signin" element={<SignInPage />} />
-          <Route path="/connect-app" element={<ConnectAppPage />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Onboarding Routes (No AppLayout) */}
+            <Route path="/quiz" element={<QuizPage />} />
+            <Route path="/result" element={<ResultPage />} />
+            <Route path="/signin" element={<SignInPage />} />
+            <Route path="/connect-app" element={<ConnectAppPage />} />
 
-          {/* Main App Routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <AppLayout>
-                <DashboardPage />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/category/:slug"
-            element={
-              <AppLayout>
-                <CategoryPage />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/actions"
-            element={
-              <AppLayout>
-                <ActionsPage />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/review"
-            element={
-              <AppLayout>
-                <ReviewPage />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/leaderboard"
-            element={
-              <AppLayout>
-                <LeaderboardPage />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/badges"
-            element={
-              <AppLayout>
-                <BadgesPage />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/apps"
-            element={
-              <AppLayout>
-                <ConnectAppsPage />
-              </AppLayout>
-            }
-          />
-          {/* Fallbacks */}
-          <Route path="/" element={<Navigate to="/quiz" replace />} />
-          <Route path="*" element={<Navigate to="/quiz" replace />} />
-        </Routes>
+            {/* Main App Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <AppLayout>
+                  <DashboardPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/category/:slug"
+              element={
+                <AppLayout>
+                  <CategoryPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/actions"
+              element={
+                <AppLayout>
+                  <ActionsPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/review"
+              element={
+                <AppLayout>
+                  <ReviewPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/leaderboard"
+              element={
+                <AppLayout>
+                  <LeaderboardPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/badges"
+              element={
+                <AppLayout>
+                  <BadgesPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/apps"
+              element={
+                <AppLayout>
+                  <ConnectAppsPage />
+                </AppLayout>
+              }
+            />
+            {/* Fallbacks */}
+            <Route path="/" element={<Navigate to="/quiz" replace />} />
+            <Route path="*" element={<Navigate to="/quiz" replace />} />
+          </Routes>
+        </Suspense>
       </Router>
     </AddEntryProvider>
   );

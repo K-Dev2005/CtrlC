@@ -12,6 +12,10 @@ const port = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
 const isProd = process.env.NODE_ENV === 'production';
 
+app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+}); 
+
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
@@ -23,12 +27,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Session required by Passport (even when using stateless JWTs, Passport needs it)
+// Session required by Passport (and for storing OAuth CSRF state tokens)
 app.use(session({
   secret: process.env.JWT_SECRET || 'ctrlc_dev_secret',
   resave: false,
-  saveUninitialized: false,
-  cookie: { secure: isProd, maxAge: 24 * 60 * 60 * 1000 }, // 1 day
+  saveUninitialized: true,   // must be true so the state token is saved before the Google redirect
+  cookie: { secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 10 * 60 * 1000 }, // 10 min — only needed for OAuth handshake
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -56,9 +60,6 @@ app.use('/api/badges', badgeRoutes);
 app.use('/api/lookup', lookupRoutes);
 app.use('/api/sync', syncRoutes);
 
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
 
 // ---------------------------------------------------------------------------
 // Error handler
