@@ -71,4 +71,5 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 app.listen(port, () => {
   console.log(`[server] Listening on port ${port}`);
   console.log(`[server] Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'enabled' : 'mock mode (add GOOGLE_CLIENT_ID to .env)'}`);
+  console.log(`[server] Google Maps API: ${process.env.GOOGLE_MAPS_API_KEY ? 'configured' : 'NOT configured (add GOOGLE_MAPS_API_KEY to .env)'}`);
 });

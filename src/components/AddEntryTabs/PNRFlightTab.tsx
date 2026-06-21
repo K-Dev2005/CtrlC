@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Train, Plane } from 'lucide-react';
 import { EMISSION_FACTORS, trainClassFactors } from '../../lib/emissionFactors';
 import { getAuthUserId } from '../../lib/auth';
 import { CityInput } from '../CityInput';
 
 export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) => void }) => {
+  const [activeMode, setActiveMode] = useState<'train' | 'flight'>('train');
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [flightNum, setFlightNum] = useState("");
@@ -154,114 +156,140 @@ export const PNRFlightTab = ({ onSaveSuccess }: { onSaveSuccess: (msg: string) =
 
   return (
     <div className="flex flex-col gap-lg pb-xxl">
-      {/* Train Section */}
-      <div className="flex flex-col gap-sm">
-        <CityInput
-          label="Origin City"
-          placeholder="e.g. Jalandhar"
-          onSelect={setOrigin}
-          disabled={isLoadingTrain}
-        />
-        <CityInput
-          label="Destination City"
-          placeholder="e.g. New Delhi"
-          onSelect={setDestination}
-          disabled={isLoadingTrain}
-        />
-
-        <div className="mt-sm">
-          <label className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs block">Travel Class</label>
-          <div className="grid grid-cols-5 gap-xs">
-            {['1A', '2A', '3A', '3E', 'EC'].map(renderClassButton)}
-          </div>
-          <div className="grid grid-cols-4 gap-xs mt-xs">
-            {['CC', 'SL', '2S', 'GENERAL'].map(renderClassButton)}
-          </div>
-        </div>
-
-        {trainError && <div className="text-error text-body-sm mt-xs">{trainError}</div>}
-
+      {/* Mode Selector */}
+      <div className="flex gap-xs bg-surface-container-low p-1 rounded-lg w-full mb-md">
         <button
-          onClick={handleTrainLookup}
-          disabled={!origin || !destination || isLoadingTrain}
-          className="bg-primary text-on-primary px-md py-sm rounded font-medium text-body-md hover:bg-primary-container disabled:opacity-50 mt-sm flex justify-center"
+          onClick={() => setActiveMode('train')}
+          className={`flex-1 flex items-center justify-center gap-sm py-sm rounded-md transition-all font-medium text-body-md ${
+            activeMode === 'train'
+              ? 'bg-surface shadow-sm text-primary border border-outline-variant/50'
+              : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+          }`}
         >
-          {isLoadingTrain ? (
-            <span className="flex items-center gap-xs">
-              <span className="animate-spin h-4 w-4 border-2 border-on-primary border-t-transparent rounded-full"></span>
-              Calculating...
-            </span>
-          ) : "Calculate distance"}
+          <Train size={18} strokeWidth={activeMode === 'train' ? 2.5 : 2} />
+          <span>Train Journey</span>
         </button>
-
-        {trainResult && (
-          <div className="bg-surface p-md rounded-lg border border-outline-variant mt-sm flex flex-col gap-md">
-            <div>
-              <div className="text-headline-md text-on-surface">
-                {trainResult.origin.split(',')[0]} → {trainResult.destination.split(',')[0]}
-              </div>
-              <div className="text-body-md text-on-surface-variant mt-xs">
-                {trainResult.distanceKm} km by rail (approximate)
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-xs">
-              <div className="text-headline-md text-secondary">{trainCo2} kg CO₂e</div>
-              <button onClick={saveTrain} className="bg-primary text-on-primary px-md py-sm rounded text-body-md font-medium">
-                Save journey
-              </button>
-            </div>
-          </div>
-        )}
+        <button
+          onClick={() => setActiveMode('flight')}
+          className={`flex-1 flex items-center justify-center gap-sm py-sm rounded-md transition-all font-medium text-body-md ${
+            activeMode === 'flight'
+              ? 'bg-surface shadow-sm text-primary border border-outline-variant/50'
+              : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+          }`}
+        >
+          <Plane size={18} strokeWidth={activeMode === 'flight' ? 2.5 : 2} />
+          <span>Flight Lookup</span>
+        </button>
       </div>
 
-      <div className="h-px bg-outline-variant my-xs"></div>
-
-      {/* Flight Section */}
-      <div className="flex flex-col gap-sm">
-        <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">Flight number</label>
-        <div className="flex gap-sm">
-          <input
-            type="text"
-            value={flightNum}
-            onChange={e => setFlightNum(e.target.value)}
-            placeholder="e.g. 6E 2341"
-            className="flex-1 bg-surface border border-outline-variant rounded p-sm text-body-md focus:border-primary uppercase font-mono"
+      {activeMode === 'train' ? (
+        /* Train Section */
+        <div className="flex flex-col gap-sm">
+          <CityInput
+            label="Origin City"
+            placeholder="e.g. Jalandhar"
+            onSelect={setOrigin}
+            disabled={isLoadingTrain}
           />
-          <button
-            onClick={handleFlightLookup}
-            disabled={!flightNum.trim()}
-            className="bg-primary text-on-primary px-md rounded font-medium text-body-md hover:bg-primary-container disabled:opacity-50"
-          >
-            Look up
-          </button>
-        </div>
+          <CityInput
+            label="Destination City"
+            placeholder="e.g. New Delhi"
+            onSelect={setDestination}
+            disabled={isLoadingTrain}
+          />
 
-        {flightResult && (
-          <div className="bg-surface p-md rounded-lg border border-outline-variant mt-sm flex flex-col gap-md">
-            <div>
-              <div className="text-headline-md text-on-surface">{flightResult.route}</div>
-              <div className="text-body-md text-on-surface-variant mt-xs">
-                {flightResult.airline} • {flightResult.distanceKm} km
-              </div>
+          <div className="mt-sm">
+            <label className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs block">Travel Class</label>
+            <div className="grid grid-cols-5 gap-xs">
+              {['1A', '2A', '3A', '3E', 'EC'].map(renderClassButton)}
             </div>
-
-            <div className="flex justify-between items-center pt-xs">
-              <div>
-                <div className="text-headline-md text-secondary">
-                  {(flightResult.distanceKm * EMISSION_FACTORS['flight (economy)']).toFixed(2)} kg
-                </div>
-                <div className="text-xs text-on-surface-variant mt-1 leading-tight max-w-[200px]">
-                  Includes radiative forcing (1.9×) — flights emit more than CO₂ at altitude
-                </div>
-              </div>
-              <button onClick={saveFlight} className="bg-primary text-on-primary px-md py-sm rounded text-body-md font-medium">
-                Save flight
-              </button>
+            <div className="grid grid-cols-4 gap-xs mt-xs">
+              {['CC', 'SL', '2S', 'GENERAL'].map(renderClassButton)}
             </div>
           </div>
-        )}
-      </div>
+
+          {trainError && <div className="text-error text-body-sm mt-xs">{trainError}</div>}
+
+          <button
+            onClick={handleTrainLookup}
+            disabled={!origin || !destination || isLoadingTrain}
+            className="bg-primary text-on-primary px-md py-sm rounded font-medium text-body-md hover:bg-primary-container disabled:opacity-50 mt-sm flex justify-center"
+          >
+            {isLoadingTrain ? (
+              <span className="flex items-center gap-xs">
+                <span className="animate-spin h-4 w-4 border-2 border-on-primary border-t-transparent rounded-full"></span>
+                Calculating...
+              </span>
+            ) : "Calculate distance"}
+          </button>
+
+          {trainResult && (
+            <div className="bg-surface p-md rounded-lg border border-outline-variant mt-sm flex flex-col gap-md">
+              <div>
+                <div className="text-headline-md text-on-surface">
+                  {trainResult.origin.split(',')[0]} → {trainResult.destination.split(',')[0]}
+                </div>
+                <div className="text-body-md text-on-surface-variant mt-xs">
+                  {trainResult.distanceKm} km by rail (approximate)
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-xs">
+                <div className="text-headline-md text-secondary">{trainCo2} kg CO₂e</div>
+                <button onClick={saveTrain} className="bg-primary text-on-primary px-md py-sm rounded text-body-md font-medium">
+                  Save journey
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Flight Section */
+        <div className="flex flex-col gap-sm">
+          <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">Flight number</label>
+          <div className="flex gap-sm">
+            <input
+              type="text"
+              value={flightNum}
+              onChange={e => setFlightNum(e.target.value)}
+              placeholder="e.g. 6E 2341"
+              className="flex-1 bg-surface border border-outline-variant rounded p-sm text-body-md focus:border-primary uppercase font-mono"
+            />
+            <button
+              onClick={handleFlightLookup}
+              disabled={!flightNum.trim()}
+              className="bg-primary text-on-primary px-md rounded font-medium text-body-md hover:bg-primary-container disabled:opacity-50"
+            >
+              Look up
+            </button>
+          </div>
+
+          {flightResult && (
+            <div className="bg-surface p-md rounded-lg border border-outline-variant mt-sm flex flex-col gap-md">
+              <div>
+                <div className="text-headline-md text-on-surface">{flightResult.route}</div>
+                <div className="text-body-md text-on-surface-variant mt-xs">
+                  {flightResult.airline} • {flightResult.distanceKm} km
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-xs">
+                <div>
+                  <div className="text-headline-md text-secondary">
+                    {(flightResult.distanceKm * EMISSION_FACTORS['flight (economy)']).toFixed(2)} kg
+                  </div>
+                  <div className="text-xs text-on-surface-variant mt-1 leading-tight max-w-[200px]">
+                    Includes radiative forcing (1.9×) — flights emit more than CO₂ at altitude
+                  </div>
+                </div>
+                <button onClick={saveFlight} className="bg-primary text-on-primary px-md py-sm rounded text-body-md font-medium">
+                  Save flight
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
