@@ -63,7 +63,7 @@ export default function SignInPage() {
       await new Promise(r => setTimeout(r, 1200));
       saveAuthToken('mock_token_dev', 'user_001', 'Kishlay');
 
-      const answersStr = localStorage.getItem('harit_quiz_answers');
+      const answersStr = localStorage.getItem('ctrlc_quiz_answers');
       if (answersStr) {
         const answers = JSON.parse(answersStr);
         fetch('/api/users/onboarding', {
@@ -71,7 +71,7 @@ export default function SignInPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: 'user_001', ...answers }),
         }).catch(console.error);
-        localStorage.removeItem('harit_quiz_answers');
+        localStorage.removeItem('ctrlc_quiz_answers');
       }
 
       navigate('/connect-app');
@@ -95,7 +95,7 @@ export default function SignInPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background p-lg max-w-[400px] mx-auto justify-center">
       <div className="text-center mb-xxl">
-        <h1 className="text-display-lg-mobile font-semibold text-primary mb-xs">Welcome to Harit</h1>
+        <h1 className="text-display-lg-mobile font-semibold text-primary mb-xs">Welcome to CtrlC</h1>
         <p className="text-body-md text-on-surface-variant">Save your progress and track your footprint.</p>
       </div>
 
@@ -211,7 +211,7 @@ export default function SignInPage() {
         )}
 
         <p className="text-[11px] text-center text-on-surface-variant mt-sm px-lg leading-relaxed">
-          By continuing you agree to Harit's Terms of Service and Privacy Policy.
+          By continuing you agree to CtrlC's Terms of Service and Privacy Policy.
         </p>
       </div>
     </div>

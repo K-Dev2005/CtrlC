@@ -101,10 +101,10 @@ export const LeaderboardPage: React.FC = () => {
   };
 
   const handleInviteFriend = () => {
-    const text = "Hey! Join my carbon-saving challenge on Harit. Let's cut our cab commutes together!";
+    const text = "Hey! Join my carbon-saving challenge on CtrlC. Let's cut our cab commutes together!";
     if (navigator.share) {
       navigator.share({
-        title: 'Harit Challenge Invite',
+        title: 'CtrlC Challenge Invite',
         text: text,
       }).catch(console.error);
     } else {

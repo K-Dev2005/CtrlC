@@ -13,13 +13,13 @@ const router = Router();
 const DB_FILE = path.resolve(process.cwd(), 'db.json');
 
 // Read lazily after dotenv has loaded
-function getJwtSecret() { return process.env.JWT_SECRET || 'harit_dev_secret'; }
+function getJwtSecret() { return process.env.JWT_SECRET || 'ctrlc_dev_secret'; }
 function getFrontendUrl() { return process.env.FRONTEND_URL || 'http://localhost:5174'; }
 
 // ---------------------------------------------------------------------------
 // db.json helpers
 // ---------------------------------------------------------------------------
-interface HaritUser {
+interface CtrlCUser {
   id: string;
   googleId?: string;
   name: string;
@@ -31,7 +31,7 @@ interface HaritUser {
   createdAt: string;
 }
 
-function readDb(): { users: HaritUser[]; entries: any[]; [key: string]: any } {
+function readDb(): { users: CtrlCUser[]; entries: any[]; [key: string]: any } {
   try {
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -88,7 +88,7 @@ if (hasGoogleCreds) {
             user = {
               id: `user_${Date.now()}`,
               googleId: profile.id,
-              name: profile.displayName || 'Harit User',
+              name: profile.displayName || 'CtrlC User',
               email: profile.emails?.[0]?.value || '',
               avatar: profile.photos?.[0]?.value || '',
               weeklyBudgetKg: 18,
@@ -125,7 +125,7 @@ passport.deserializeUser((id: string, done) => {
 // ---------------------------------------------------------------------------
 // Helper: issue a signed JWT for a user
 // ---------------------------------------------------------------------------
-function issueToken(user: HaritUser): string {
+function issueToken(user: CtrlCUser): string {
   return jwt.sign(
     {
       userId: user.id,
@@ -151,7 +151,7 @@ router.get('/google', (req: Request, res: Response) => {
       devUser = {
         id: 'user_001',
         name: 'Dev User',
-        email: 'dev@harit.app',
+        email: 'dev@ctrlc.app',
         weeklyBudgetKg: 18,
         streakDays: 0,
         pointsTotal: 0,
@@ -190,7 +190,7 @@ router.get(
     );
   },
   (req: Request, res: Response) => {
-    const user = req.user as HaritUser;
+    const user = req.user as CtrlCUser;
     const token = issueToken(user);
     res.redirect(
       `${getFrontendUrl()}/dashboard?token=${token}&userId=${user.id}&name=${encodeURIComponent(user.name)}`

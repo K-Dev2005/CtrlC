@@ -124,10 +124,10 @@ export const WeeklyReviewContent: React.FC<WeeklyReviewContentProps> = ({ isModa
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error("Canvas blob creation failed");
 
-      const file = new File([blob], `harit_week_${Date.now()}.png`, { type: 'image/png' });
+      const file = new File([blob], `ctrlc_week_${Date.now()}.png`, { type: 'image/png' });
       const shareData = {
-        title: 'My Harit Carbon Week',
-        text: `I saved carbon with Harit! Emissions: ${data.totalEmissionsKg.toFixed(1)} kg vs my ${data.budgetKg.toFixed(1)} kg budget. #Harit`,
+        title: 'My CtrlC Carbon Week',
+        text: `I saved carbon with CtrlC! Emissions: ${data.totalEmissionsKg.toFixed(1)} kg vs my ${data.budgetKg.toFixed(1)} kg budget. #CtrlC`,
         files: [file]
       };
 
@@ -140,7 +140,7 @@ export const WeeklyReviewContent: React.FC<WeeklyReviewContentProps> = ({ isModa
 - Total Emissions: ${data.totalEmissionsKg.toFixed(1)} kg CO₂e
 - Weekly Budget: ${data.budgetKg.toFixed(1)} kg CO₂e (${data.totalEmissionsKg <= data.budgetKg ? 'Under budget!' : 'Over budget'})
 - Streak: ${data.streakDays} days
-Logged via Harit Carbon Ledger.`;
+Logged via CtrlC Carbon Ledger.`;
         
         await navigator.clipboard.writeText(textToCopy);
         setShareStatus('success');

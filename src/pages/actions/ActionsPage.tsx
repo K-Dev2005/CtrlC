@@ -86,7 +86,7 @@ export const ActionsPage: React.FC = () => {
         });
 
         // Merge with localStorage committed statuses
-        const localCommitted = JSON.parse(localStorage.getItem('harit_committed_actions') || '[]');
+        const localCommitted = JSON.parse(localStorage.getItem('ctrlc_committed_actions') || '[]');
         const finalCards = (mappedCards.length > 0 ? mappedCards : mockActions).map(c => ({
           ...c,
           committed: c.committed || localCommitted.includes(c.id)
@@ -105,7 +105,7 @@ export const ActionsPage: React.FC = () => {
   };
 
   const fallbackToMock = () => {
-    const localCommitted = JSON.parse(localStorage.getItem('harit_committed_actions') || '[]');
+    const localCommitted = JSON.parse(localStorage.getItem('ctrlc_committed_actions') || '[]');
     const finalCards = mockActions.map(c => ({
       ...c,
       committed: c.committed || localCommitted.includes(c.id)

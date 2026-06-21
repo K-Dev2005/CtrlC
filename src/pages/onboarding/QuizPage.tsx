@@ -94,7 +94,7 @@ export default function QuizPage() {
         setCurrentStep(prev => prev + 1);
         setSelectedOption(null);
       } else {
-        localStorage.setItem('harit_quiz_answers', JSON.stringify(newAnswers));
+        localStorage.setItem('ctrlc_quiz_answers', JSON.stringify(newAnswers));
         navigate('/result');
       }
     }, 300);

@@ -25,7 +25,7 @@ app.use(express.json());
 
 // Session required by Passport (even when using stateless JWTs, Passport needs it)
 app.use(session({
-  secret: process.env.JWT_SECRET || 'harit_dev_secret',
+  secret: process.env.JWT_SECRET || 'ctrlc_dev_secret',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: isProd, maxAge: 24 * 60 * 60 * 1000 }, // 1 day

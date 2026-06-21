@@ -130,8 +130,8 @@ const BADGES_LIST: BadgeDefinition[] = [
     earnedDefault: false
   },
   {
-    slug: "harit_legend",
-    name: "Harit legend",
+    slug: "ctrlc_legend",
+    name: "CtrlC legend",
     description: "All other badges earned",
     unlockCondition: "All other badges earned",
     iconName: "trophy",

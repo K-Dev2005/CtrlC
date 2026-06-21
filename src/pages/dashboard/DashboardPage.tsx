@@ -104,10 +104,10 @@ export const DashboardPage: React.FC = () => {
       const weekNo = Math.ceil((((tempDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
       const weekId = `${year}-W${weekNo}`;
 
-      const seenWeek = localStorage.getItem('harit_review_seen_week');
+      const seenWeek = localStorage.getItem('ctrlc_review_seen_week');
       if (seenWeek !== weekId) {
         setShowReviewModal(true);
-        localStorage.setItem('harit_review_seen_week', weekId);
+        localStorage.setItem('ctrlc_review_seen_week', weekId);
       }
     }
 
@@ -233,7 +233,7 @@ export const DashboardPage: React.FC = () => {
       <header className="hidden md:flex justify-between items-center w-full px-lg py-md border-b bg-surface-container-lowest border-surface-variant max-w-container-max mx-auto">
         <div>
           <h1 className="text-headline-md font-semibold text-primary font-sans">Carbon Dashboard</h1>
-          <p className="text-label-sm text-on-surface-variant uppercase tracking-wider">Harit Personal Ledger</p>
+          <p className="text-label-sm text-on-surface-variant uppercase tracking-wider">CtrlC Personal Ledger</p>
         </div>
         <button
           onClick={() => openSheet('ai')}

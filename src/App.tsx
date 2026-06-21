@@ -35,7 +35,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* SideNavBar (Desktop only, hidden on mobile) */}
       <nav className="hidden md:flex flex-col h-full py-lg px-md w-64 border-r bg-surface border-surface-variant/80 z-20">
         <div className="mb-xxl">
-          <h1 className="text-[24px] font-extrabold text-primary tracking-tight leading-none">Harit</h1>
+          <h1 className="text-[24px] font-extrabold text-primary tracking-tight leading-none">CtrlC</h1>
           <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mt-1">Carbon Ledger</p>
         </div>
         

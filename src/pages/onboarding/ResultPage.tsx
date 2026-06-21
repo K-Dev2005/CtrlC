@@ -8,7 +8,7 @@ export default function ResultPage() {
 
   useEffect(() => {
     try {
-      const answersStr = localStorage.getItem('harit_quiz_answers');
+      const answersStr = localStorage.getItem('ctrlc_quiz_answers');
       if (!answersStr) {
         navigate('/quiz');
         return;
